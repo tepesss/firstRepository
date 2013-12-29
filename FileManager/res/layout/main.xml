@@ -9,7 +9,6 @@
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         android:src="@drawable/anim_start_logo" />   
-
     <ImageView
         android:contentDescription="@string/logo"
         android:id="@+id/imageView1"
@@ -18,5 +17,4 @@
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         android:src="@drawable/start_logo" />
-
 </RelativeLayout>

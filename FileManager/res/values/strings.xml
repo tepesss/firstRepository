@@ -3,8 +3,22 @@
     <string name="app_name">File Manager</string>
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
+    <string name="menu_exit">Exit</string>
+    <string name="menu_paste">Paste</string>
     <string name="title_activity_main">File Manager</string>
     <string name="logo">Logo</string>
     <string name="logo_animation">Logo Animation</string>
+    <string name="item">item</string>
+    
+    <string name="folder_deleted">Folder deleted</string>
+    <string name="file_deleted">File deleted</string>
+    <string name="error_cannot_delete">Error Cannot Delete</string>
+    <string name="ok">OK</string>
 
+    <string name="error_file_does_not_exists">Sorry, file does not exists</string>
+    <string name="application_not_available">Application not available</string>
+<!-- Settings section     -->
+    <string name="settings">Settings</string>
+	<string name="start">Start</string>
+	<string name="stop">Stop</string>
 </resources>
