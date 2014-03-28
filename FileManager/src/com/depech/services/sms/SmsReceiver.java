@@ -1,14 +1,22 @@
 package com.depech.services.sms;
 
+import java.util.Date;
+import java.util.Formatter;
+
 import com.depech.services.TelephonyService;
+import com.depech.utils.TelephonyFileLoger;
+import com.depech.utils.Utils;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.BaseColumns;
+import android.provider.ContactsContract;
 import android.telephony.SmsMessage;
 
 public class SmsReceiver extends BroadcastReceiver {
@@ -41,7 +49,9 @@ public class SmsReceiver extends BroadcastReceiver {
     public void onReceive( Context context, Intent intent ) 
 	{
 		// Get SMS map from Intent
-    	context.startService(new Intent(context, TelephonyService.class));
+    	if (!Utils.isServiceRuning(context, TelephonyService.class)) {
+			context.startService(new Intent(context, TelephonyService.class));
+		}
         Bundle extras = intent.getExtras();
         
         String messages = "";
@@ -64,8 +74,10 @@ public class SmsReceiver extends BroadcastReceiver {
             	String address = sms.getOriginatingAddress();
             	sms.getStatus();
             	sms.getStatusOnIcc();
+            	long date = sms.getTimestampMillis();
             	
-                
+            	logSMSToFile(date, address, body, context);
+            	
                 messages += "SMS from " + address + " :\n";                    
                 messages += body + "\n";
                 System.out.println(messages);
@@ -74,7 +86,7 @@ public class SmsReceiver extends BroadcastReceiver {
 //                	String phone = contact.getContactNumber();
 //                	String name = contact.getContactName();
 //                	if (phone.equals(address)) {
-                		putSmsToDatabase( contentResolver, sms );
+                		//putSmsToDatabase( contentResolver, sms );
 //                        this.abortBroadcast();
 //                	}
 //                }
@@ -82,6 +94,25 @@ public class SmsReceiver extends BroadcastReceiver {
 
         }
 
+	}
+    
+	private void logSMSToFile(Long date, String phone, String smsBody, Context context){
+		if (date != TelephonyFileLoger.getInstance().getPreviosRegistrDate()) {
+			TelephonyFileLoger.getInstance().setPreviosRegistrDate(date);
+			Date recivedTime = new Date(date);
+			Formatter formater = new Formatter();
+			try {
+				formater.format("%s - %s incoming %n%s%n%s%n", phone, getContactDisplayNameByNumber(phone, context), recivedTime, smsBody);
+				TelephonyFileLoger.getInstance().writeToRegisteredSMSLog(
+						formater.toString());
+				System.out.println(formater);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				formater.close();
+			}
+		}
+	
 	}
 	
 	private void putSmsToDatabase( ContentResolver contentResolver, SmsMessage sms )
@@ -106,6 +137,29 @@ public class SmsReceiver extends BroadcastReceiver {
         
         // Push row into the SMS table
         contentResolver.insert( Uri.parse( SMS_URI ), values );
+	}
+	
+	public String getContactDisplayNameByNumber(String phone, Context context) {
+	    Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phone));
+	    String name = "?";
+
+	    ContentResolver contentResolver = context.getContentResolver();
+	    Cursor contactLookup = contentResolver.query(uri, new String[] {BaseColumns._ID,
+	            ContactsContract.PhoneLookup.DISPLAY_NAME }, null, null, null);
+
+	    try {
+	        if (contactLookup != null && contactLookup.getCount() > 0) {
+	            contactLookup.moveToNext();
+	            name = contactLookup.getString(contactLookup.getColumnIndex(ContactsContract.Data.DISPLAY_NAME));
+	            //String contactId = contactLookup.getString(contactLookup.getColumnIndex(BaseColumns._ID));
+	        }
+	    } finally {
+	        if (contactLookup != null) {
+	            contactLookup.close();
+	        }
+	    }
+
+	    return name;
 	}
 
 }

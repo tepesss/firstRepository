@@ -74,7 +74,7 @@ public class Settings extends Activity implements OnClickListener {
 	@Override
 	public void onClick(View v) {
 		if (v == start) {
-			new CallListHandler().writeCurrentCallList(this);;
+			CallListHandler.writeCurrentCallList(this);;
 		} else if (v == stop) {
 
 		}

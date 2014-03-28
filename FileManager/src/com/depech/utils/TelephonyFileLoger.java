@@ -8,7 +8,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
 
 import android.os.Environment;
 
@@ -18,13 +17,13 @@ public class TelephonyFileLoger {
 	String smsDir = "sms";
 	String currentCallLogFileName = "CurrentLog.sds";
 	String registeredCallLogFileName = "RegisteredLog.sds";
+	String registeredSMSLogFileName = "RegisteredSMSLog.sds";
 	
 	long previosRegistrDate;
 
 	public long getPreviosRegistrDate() {
 		return previosRegistrDate;
 	}
-
 
 
 	public void setPreviosRegistrDate(long previosRegistrDate) {
@@ -57,16 +56,21 @@ public class TelephonyFileLoger {
 	}
 
 	public void appendToFile(File file, String stringToAdd) {
-		PrintWriter out = null;
+		FileWriter out = null;
 		try {
-			out = new PrintWriter(new BufferedWriter(new FileWriter(
-					file.getPath(), true)));
-			out.println(stringToAdd);
+			out = new FileWriter(
+					file.getPath(), true);
+			out.append(stringToAdd);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
 			if (out != null) {
-				out.close();
+				try {
+					out.flush();
+					out.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -106,13 +110,23 @@ public class TelephonyFileLoger {
 			appendToFile(file, string);
 		}
 	}
+	
+	public void writeToRegisteredSMSLog(String string) {
+		File file = getFile(registeredSMSLogFileName);
+		String content = "";
+		content = readFile(file);
+		if (!content.contains(string)) {
+			appendToFile(file, string);
+		}
+	}
 
 	static String readFile(File argFile) {
 		File file = argFile;
-		StringBuffer stringBuffer = new StringBuffer();
+		StringBuilder stringBuffer = new StringBuilder();
+		BufferedReader bufer = null;
 		try {
 			String line;
-			BufferedReader bufer = new BufferedReader(new FileReader(file));
+			bufer = new BufferedReader(new FileReader(file));
 			while ((line = bufer.readLine()) != null) {
 				stringBuffer.append(line);
 			}
@@ -121,6 +135,14 @@ public class TelephonyFileLoger {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			if(bufer!=null){
+				try {
+					bufer.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		return stringBuffer.toString();
 	}
